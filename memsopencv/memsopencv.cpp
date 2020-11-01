@@ -3,6 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <vector>
 
 using namespace cv;
 using namespace std;
@@ -29,8 +30,8 @@ int main(int argc, char* argv[])
 	// Create a window with above names
 	namedWindow(window_name_of_original_video, WINDOW_NORMAL);
 
-	int iLowH = 170;
-	int iHighH = 179;
+	int iLowH = 22;
+	int iHighH = 38;
 
 	int iLowS = 150;
 	int iHighS = 255;
@@ -51,17 +52,23 @@ int main(int argc, char* argv[])
 	int iLastX = -1;
 	int iLastY = -1;
 
+	vector<int> xcoords;
+	vector<int> ycoords;
+
 	//Capture a temporary image from the camera
 	Mat imgTmp;
 	cap.read(imgTmp);
 
 	//Create a black image with the size as the camera output
 	Mat imgLines = Mat::zeros(imgTmp.size(), CV_8UC3);
+	Mat imgLinesFade = Mat::zeros(imgTmp.size(), CV_8UC3);
 
 	while (true)
 	{
 		Mat imgOriginal;
 		bool bSuccess = cap.read(imgOriginal); // read a new frame from video 
+		Mat imgOriginalKeep;
+		bool bSuccesskeep =	cap.read(imgOriginalKeep);
 
 		//Breaking the while loop at the end of the video
 		if (bSuccess == false)
@@ -101,19 +108,35 @@ int main(int argc, char* argv[])
 			int posX = dM10 / dArea;
 			int posY = dM01 / dArea;
 
+			xcoords.push_back(posX);
+			ycoords.push_back(posY);
+
 			if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
 			{
-				//Draw a red line from the previous point to the current point
-				line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0, 0, 255), 2);
+				//Draw a line from the previous point to the current point
+				line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0, 255, 0), 1);
 			}
 
 			iLastX = posX;
 			iLastY = posY;
+
 		}
 
 		imshow("Thresholded Image", imgThresholded); //show the thresholded image
 
-		imgOriginal = imgOriginal + imgLines;
+		imgOriginal = imgOriginal + imgLines ;
+		/*
+		if (xcoords.size() > 10) {
+			for (int i = 1; i < int(xcoords.size() / 2); i++) {
+				Vec3b& color  = imgOriginal.at<Vec3b>(ycoords[i], xcoords[i]);
+				Vec3b& color2 = imgOriginalKeep.at<Vec3b>(ycoords[i], xcoords[i]);
+
+				color[0] = color2[0];
+				color[1] = color2[1];
+				color[2] = color2[2];
+			}
+		}
+		*/
 
 		//show the frames in the created windows
 		imshow("Original", imgOriginal); //show the original image
