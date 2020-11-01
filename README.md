@@ -1,4 +1,4 @@
-# MEMS
+# MEMS-GKLB_INTM020
 Mikroelektro
 
 Github repository for assignment of the course GKLB_INTM020 at Szechenyi Istvan University.
