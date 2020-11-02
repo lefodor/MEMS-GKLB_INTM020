@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 		Mat imgOriginal;
 		bool bSuccess = cap.read(imgOriginal); // read a new frame from video 
 		Mat imgOriginalKeep;
-		bool bSuccesskeep =	cap.read(imgOriginalKeep);
+		bool bSuccesskeep = cap.read(imgOriginalKeep);
 
 		//Breaking the while loop at the end of the video
 		if (bSuccess == false)
@@ -122,10 +122,10 @@ int main(int argc, char* argv[])
 
 		}
 
-		imshow("Thresholded Image", imgThresholded); //show the thresholded image
+		imgOriginal = imgOriginal + imgLines;
 
-		imgOriginal = imgOriginal + imgLines ;
-		/*
+		/* run HoughCircles function on 1 image
+		// color pixels back to original
 		if (xcoords.size() > 10) {
 			for (int i = 1; i < int(xcoords.size() / 2); i++) {
 				Vec3b& color  = imgOriginal.at<Vec3b>(ycoords[i], xcoords[i]);
@@ -139,7 +139,104 @@ int main(int argc, char* argv[])
 		*/
 
 		//show the frames in the created windows
+		//imshow("Original", imgOriginal); //show the original image
+
+		/*
+		// Create empty image
+		Mat image_empty(600, 800, CV_8UC3, Scalar(0, 0, 0));
+		//Mat image_empty = imread("C:/Users/leven/opencv/JGRiM.jpg");
+
+		// Check for failure
+		if (image_empty.empty())
+		{
+			cout << "Could not open or find the image" << endl;
+			cin.get(); //wait for any key press
+			return -1;
+		}
+
+		Mat image_empty_gr;
+
+		String windowName2 = "Window with Blank Image"; //Name of the window
+
+		namedWindow(windowName2, WINDOW_AUTOSIZE); // Create a window
+
+		circle(image_empty, Point(400, 300), 50, Scalar(100, 250, 30), -1, 8, 0);
+
+		cvtColor(image_empty, image_empty_gr, COLOR_BGR2GRAY);
+
+		GaussianBlur(image_empty_gr, image_empty_gr, cv::Size(9, 9), 2, 2);
+
+		vector<Vec3f> circles;
+		HoughCircles(
+			image_empty_gr, circles, HOUGH_GRADIENT,
+			2,				// accumulator resolution (size of the image / 2)
+			5,				// image_empty_gr.rows / 16,  // change this value to detect circles with different distances to each other
+			100,			// canny high threshold
+			100,			// minimum number of votes
+			0, 1000			// change the last two parameters (min_radius & max_radius) to detect larger circles
+		);
+
+		for (size_t i = 0; i < circles.size(); i++)
+		{
+			Vec3i c = circles[i];
+			Point center = Point(c[0], c[1]);
+			cout << c[0] << " " << c[1] << endl;
+			// circle center
+			circle(image_empty, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
+			// circle outline
+			int radius = c[2];
+			circle(image_empty, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
+		}
+
+		*/
+
+		// Run HoughCircles on video
+		Mat imgGr;
+		cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to HSV
+
+		GaussianBlur(imgGr, imgGr, cv::Size(9, 9), 2, 2);
+
+		vector<Vec3f> circles2;
+		HoughCircles(
+			imgGr, circles2, HOUGH_GRADIENT,
+			2,				// accumulator resolution (size of the image / 2)
+			5,				// image_empty_gr.rows / 16,  // change this value to detect circles with different distances to each other
+			100,			// canny high threshold
+			100,			// minimum number of votes
+			0, 80			// change the last two parameters (min_radius & max_radius) to detect larger circles
+		);
+
+		//cout << circles.size() << endl;
+
+		/*
+		// check if color coincides with object shape
+		vector<Vec3f> circles2;
+		int* circlestodrop = new int[];
+		for (int i = 0; i < circles2.size(); i++) {
+
+		}
+		*/
+
+		for (size_t i = 0; i < circles2.size(); i++)
+		{
+			Vec3i c = circles2[i];
+			Point center = Point(c[0], c[1]);
+			//cout << c[0] << " " << c[1] << endl;
+			// circle center
+			circle(imgOriginal, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
+			// circle outline
+			int radius = c[2];
+			circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
+		}
+
+		// imshow section 
+		//imshow(windowName2, image_empty); // Show our image inside the created window.
+
+		//show the frames in the created windows
 		imshow("Original", imgOriginal); //show the original image
+
+		// show thresholded image
+		imshow("Thresholded Image", imgThresholded); //show the thresholded image
 
 		//wait for for 10 ms until any key is pressed.  
 		//If the 'Esc' key is pressed, break the while loop.
