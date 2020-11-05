@@ -8,28 +8,16 @@
 using namespace cv;
 using namespace std;
 
+void init(VideoCapture& , Mat& );
+void colorhsvtrackbar(string& , int& , int& , int& , int& , int& , int& );
+Mat  thresholdingv1(Mat&, int&, int&, int&, int&, int&, int&);
+void calcMments(Mat&, Mat&, int&, int&);
+void detectCirclesv1(Mat& , Mat& );
+
+
 int main(int argc, char* argv[])
 {
-	//open the video file for reading
-	//VideoCapture cap("C:/Users/leven/opencv/HerdOfDeerRunningOnSnowyRoad.mp4");
-	VideoCapture cap(0);
-	//VideoCapture cap("http://192.168.0.102:4747/video?x.mjpeg");
-
-	// if not success, exit program
-	if (cap.isOpened() == false)
-	{
-		//cout << "Cannot open the video file" << endl;
-		cout << "Cannot open the video cam " << endl;
-		cin.get(); //wait for any key press
-		return -1;
-	}
-
-	//Define names of the window
-	String window_name_of_original_video = "Control";
-
-	// Create a window with above names
-	namedWindow(window_name_of_original_video, WINDOW_NORMAL);
-
+	// set up global vars ------------------------------------------------------------------
 	int iLowH = 22;
 	int iHighH = 38;
 
@@ -39,36 +27,34 @@ int main(int argc, char* argv[])
 	int iLowV = 60;
 	int iHighV = 255;
 
-	//Create trackbars in "Control" window
-	createTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
-	createTrackbar("HighH", "Control", &iHighH, 179);
-
-	createTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
-	createTrackbar("HighS", "Control", &iHighS, 255);
-
-	createTrackbar("LowV", "Control", &iLowV, 255);//Value (0 - 255)
-	createTrackbar("HighV", "Control", &iHighV, 255);
-
 	int iLastX = -1;
 	int iLastY = -1;
 
-	vector<int> xcoords;
-	vector<int> ycoords;
+	Mat imgHSV;   // HSV convert
+	Mat imgLines; // empty image + tracking lines fro colored object
+	Mat imgGr;    // grayscale image
+	VideoCapture cap(0);
 
-	//Capture a temporary image from the camera
-	Mat imgTmp;
-	cap.read(imgTmp);
+	//Define names of the window
+	String win_control = "Control";
+	String win_orig = "Original";
 
-	//Create a black image with the size as the camera output
-	Mat imgLines = Mat::zeros(imgTmp.size(), CV_8UC3);
-	Mat imgLinesFade = Mat::zeros(imgTmp.size(), CV_8UC3);
+	// Create a window with above names
+	namedWindow(win_control, WINDOW_NORMAL);
+	namedWindow(win_orig, WINDOW_NORMAL);
 
-	while (true)
-	{
+	// init --------------------------------------------------------------------------------
+	init(cap, imgLines);
+
+	// setup trackbar ----------------------------------------------------------------------
+	colorhsvtrackbar(win_control,iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
+
+	// start frame -------------------------------------------------------------------------
+	while (true) {
+
+		// get video
 		Mat imgOriginal;
 		bool bSuccess = cap.read(imgOriginal); // read a new frame from video 
-		Mat imgOriginalKeep;
-		bool bSuccesskeep = cap.read(imgOriginalKeep);
 
 		//Breaking the while loop at the end of the video
 		if (bSuccess == false)
@@ -78,181 +64,148 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-		Mat imgHSV;
-
+		// create HSV image
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-
-		Mat imgThresholded;
-
-		inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-
-		//morphological opening (removes small objects from the foreground
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-
-		//morphological closing (removes small holes from the foreground)
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-
-		//Calculate the moments of the thresholded image
-		Moments oMoments = moments(imgThresholded);
-
-		double dM01 = oMoments.m01;
-		double dM10 = oMoments.m10;
-		double dArea = oMoments.m00;
-
-		// if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero 
-		if (dArea > 10000)
-		{
-			//calculate the position of the ball
-			int posX = dM10 / dArea;
-			int posY = dM01 / dArea;
-
-			xcoords.push_back(posX);
-			ycoords.push_back(posY);
-
-			if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
-			{
-				//Draw a line from the previous point to the current point
-				line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0, 255, 0), 1);
-			}
-
-			iLastX = posX;
-			iLastY = posY;
-
-		}
-
-		imgOriginal = imgOriginal + imgLines;
-
-		/* run HoughCircles function on 1 image
-		// color pixels back to original
-		if (xcoords.size() > 10) {
-			for (int i = 1; i < int(xcoords.size() / 2); i++) {
-				Vec3b& color  = imgOriginal.at<Vec3b>(ycoords[i], xcoords[i]);
-				Vec3b& color2 = imgOriginalKeep.at<Vec3b>(ycoords[i], xcoords[i]);
-
-				color[0] = color2[0];
-				color[1] = color2[1];
-				color[2] = color2[2];
-			}
-		}
-		*/
-
-		//show the frames in the created windows
-		//imshow("Original", imgOriginal); //show the original image
-
-		/*
-		// Create empty image
-		Mat image_empty(600, 800, CV_8UC3, Scalar(0, 0, 0));
-		//Mat image_empty = imread("C:/Users/leven/opencv/JGRiM.jpg");
-
-		// Check for failure
-		if (image_empty.empty())
-		{
-			cout << "Could not open or find the image" << endl;
-			cin.get(); //wait for any key press
-			return -1;
-		}
-
-		Mat image_empty_gr;
-
-		String windowName2 = "Window with Blank Image"; //Name of the window
-
-		namedWindow(windowName2, WINDOW_AUTOSIZE); // Create a window
-
-		circle(image_empty, Point(400, 300), 50, Scalar(100, 250, 30), -1, 8, 0);
-
-		cvtColor(image_empty, image_empty_gr, COLOR_BGR2GRAY);
-
-		GaussianBlur(image_empty_gr, image_empty_gr, cv::Size(9, 9), 2, 2);
-
-		vector<Vec3f> circles;
-		HoughCircles(
-			image_empty_gr, circles, HOUGH_GRADIENT,
-			2,				// accumulator resolution (size of the image / 2)
-			5,				// image_empty_gr.rows / 16,  // change this value to detect circles with different distances to each other
-			100,			// canny high threshold
-			100,			// minimum number of votes
-			0, 1000			// change the last two parameters (min_radius & max_radius) to detect larger circles
-		);
-
-		for (size_t i = 0; i < circles.size(); i++)
-		{
-			Vec3i c = circles[i];
-			Point center = Point(c[0], c[1]);
-			cout << c[0] << " " << c[1] << endl;
-			// circle center
-			circle(image_empty, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
-			// circle outline
-			int radius = c[2];
-			circle(image_empty, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
-		}
-
-		*/
-
-		// Run HoughCircles on video
-		Mat imgGr;
+		// create Grayscale image
 		cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to HSV
 
+		// create image with thresholding method v1
+		Mat imgThresholdedv1 = thresholdingv1(imgHSV, iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
+
+		// calculate moments and add tracking line
+		calcMments(imgThresholdedv1, imgLines, iLastX, iLastY);
+		imgOriginal = imgOriginal + imgLines;
+
+		// prepare for object detection - create grayscale image + apply blurring
+		cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to HSV
 		GaussianBlur(imgGr, imgGr, cv::Size(9, 9), 2, 2);
+		
+		// detect circles
+		detectCirclesv1(imgOriginal, imgGr);
 
-		vector<Vec3f> circles2;
-		HoughCircles(
-			imgGr, circles2, HOUGH_GRADIENT,
-			2,				// accumulator resolution (size of the image / 2)
-			5,				// image_empty_gr.rows / 16,  // change this value to detect circles with different distances to each other
-			100,			// canny high threshold
-			100,			// minimum number of votes
-			0, 80			// change the last two parameters (min_radius & max_radius) to detect larger circles
-		);
-
-		//cout << circles.size() << endl;
-
-		/*
-		// check if color coincides with object shape
-		vector<Vec3f> circles2;
-		int* circlestodrop = new int[];
-		for (int i = 0; i < circles2.size(); i++) {
-
-		}
-		*/
-
-		for (size_t i = 0; i < circles2.size(); i++)
-		{
-			Vec3i c = circles2[i];
-			Point center = Point(c[0], c[1]);
-			//cout << c[0] << " " << c[1] << endl;
-			// circle center
-			circle(imgOriginal, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
-			// circle outline
-			int radius = c[2];
-			circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
-		}
-
-		// imshow section 
-		//imshow(windowName2, image_empty); // Show our image inside the created window.
-
-		//show the frames in the created windows
+		// show video with tracking line
 		imshow("Original", imgOriginal); //show the original image
-
 		// show thresholded image
-		imshow("Thresholded Image", imgThresholded); //show the thresholded image
+		imshow("Thresholded Image", imgThresholdedv1); //show the thresholded image
 
-		//wait for for 10 ms until any key is pressed.  
-		//If the 'Esc' key is pressed, break the while loop.
-		//If the any other key is pressed, continue the loop 
-		//If any key is not pressed withing 10 ms, continue the loop
+
+		// exit -------------------------------------------------------------------------------
 		int comm = waitKey(10);
 		if (comm == 27) {
 			cout << "Esc key is pressed by user. Stoppig the video" << endl;
 			break;
 		}
 	}
-
 	destroyAllWindows(); //Destroy all opened windows
 
 	return 0;
 
+}
+
+void init(VideoCapture& cap, Mat& imgLines) {
+	// if not success, exit program
+	if (cap.isOpened() == false)
+	{
+		//cout << "Cannot open the video file" << endl;
+		cout << "Cannot open the video cam " << endl;
+		cin.get(); //wait for any key press
+		//return -1;
+	}
+
+	//Capture a temporary image from the camera
+	Mat imgTmp;
+	cap.read(imgTmp);
+
+	//Create a black image with the size as the camera output
+	imgLines = Mat::zeros(imgTmp.size(), CV_8UC3);
+
+}
+
+void colorhsvtrackbar(string& winname, int& iLowH, int& iHighH, int& iLowS, int& iHighS, int& iLowV, int& iHighV) {
+
+	//Create trackbars in "Control" window
+	createTrackbar("LowH", winname, &iLowH, 179); //Hue (0 - 179)
+	createTrackbar("HighH", winname, &iHighH, 179);
+
+	createTrackbar("LowS", winname, &iLowS, 255); //Saturation (0 - 255)
+	createTrackbar("HighS", winname, &iHighS, 255);
+
+	createTrackbar("LowV", winname, &iLowV, 255);//Value (0 - 255)
+	createTrackbar("HighV", winname, &iHighV, 255);
+}
+
+
+Mat thresholdingv1(Mat& imgHSV, int& iLowH, int& iHighH, int& iLowS, int& iHighS, int& iLowV, int& iHighV) {
+	Mat imgThresholded;
+
+	inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+
+	//morphological opening (removes small objects from the foreground
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+	//morphological closing (removes small holes from the foreground)
+	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+	return imgThresholded;
+}
+
+void calcMments(Mat& imgThresholded, Mat& imgLines, int& iLastX, int& iLastY) {
+
+	//Calculate the moments of the thresholded image
+	Moments oMoments = moments(imgThresholded);
+
+	double dM01 = oMoments.m01;
+	double dM10 = oMoments.m10;
+	double dArea = oMoments.m00;
+
+	// if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero 
+	if (dArea > 10000)
+	{
+		//calculate the position of the ball
+		int posX = dM10 / dArea;
+		int posY = dM01 / dArea;
+
+		//xcoords.push_back(posX);
+		//ycoords.push_back(posY);
+
+		if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
+		{
+			//Draw a line from the previous point to the current point
+			line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0, 255, 0), 1);
+		}
+
+		iLastX = posX;
+		iLastY = posY;
+
+	}
+}
+
+void detectCirclesv1(Mat& imgOriginal, Mat& imgGr) {
+	vector<Vec3f> circles2;
+	HoughCircles(
+		imgGr, circles2, HOUGH_GRADIENT,
+		2,				// accumulator resolution (size of the image / 2)
+		5,				// image_empty_gr.rows / 16,  // change this value to detect circles with different distances to each other
+		100,			// canny high threshold
+		100,			// minimum number of votes
+		0, 80			// change the last two parameters (min_radius & max_radius) to detect larger circles
+	);
+
+	//cout << circles.size() << endl;
+
+	for (size_t i = 0; i < circles2.size(); i++)
+	{
+		Vec3i c = circles2[i];
+		Point center = Point(c[0], c[1]);
+		//cout << c[0] << " " << c[1] << endl;
+		// circle center
+		circle(imgOriginal, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
+		// circle outline
+		int radius = c[2];
+		circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
+	}
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
