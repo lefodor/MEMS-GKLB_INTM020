@@ -4,15 +4,24 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
 
 using namespace cv;
 using namespace std;
 
+RNG rng(12345);
+
 void init(VideoCapture& , Mat& );
 void colorhsvtrackbar(string& , int& , int& , int& , int& , int& , int& );
 Mat  thresholdingv1(Mat&, int&, int&, int&, int&, int&, int&);
+Mat  thresholdingv2(Mat&);
 void calcMments(Mat&, Mat&, int&, int&);
 void detectCirclesv1(Mat& , Mat& );
+void detectCirclesv2(Mat&,Mat&);
+//void detectCirclesv2(Mat&, Mat&); // approxPolyDP
+//void detectCirclesv3(Mat&, Mat&); // min enclosing circle
 
 
 int main(int argc, char* argv[])
@@ -30,9 +39,10 @@ int main(int argc, char* argv[])
 	int iLastX = -1;
 	int iLastY = -1;
 
-	Mat imgHSV;   // HSV convert
-	Mat imgLines; // empty image + tracking lines fro colored object
-	Mat imgGr;    // grayscale image
+	Mat imgHSV  ;    // HSV convert
+	Mat imgLines;    // empty image + tracking lines fro colored object
+	Mat imgGr   ;    // grayscale image
+	Mat imgdraw ;
 	VideoCapture cap(0);
 
 	//Define names of the window
@@ -67,26 +77,31 @@ int main(int argc, char* argv[])
 		// create HSV image
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 		// create Grayscale image
-		cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to HSV
+		cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to grayscale
 
 		// create image with thresholding method v1
-		Mat imgThresholdedv1 = thresholdingv1(imgHSV, iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
+		Mat imgThres = thresholdingv1(imgHSV, iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
+		//Mat imgThres = thresholdingv2(imgGr);
 
 		// calculate moments and add tracking line
-		calcMments(imgThresholdedv1, imgLines, iLastX, iLastY);
-		imgOriginal = imgOriginal + imgLines;
+		calcMments(imgThres, imgLines, iLastX, iLastY);
 
 		// prepare for object detection - create grayscale image + apply blurring
-		cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to HSV
-		GaussianBlur(imgGr, imgGr, cv::Size(9, 9), 2, 2);
+		// GaussianBlur(imgGr, imgGr, cv::Size(9, 9), 2, 2);
 		
 		// detect circles
 		detectCirclesv1(imgOriginal, imgGr);
+		detectCirclesv2(imgThres, imgdraw);
 
+		imgOriginal = imgOriginal + imgLines;
 		// show video with tracking line
 		imshow("Original", imgOriginal); //show the original image
 		// show thresholded image
-		imshow("Thresholded Image", imgThresholdedv1); //show the thresholded image
+		imshow("Thresholded Image", imgThres); //show the thresholded image
+		// show grayscale image
+		imshow("grayscale Image", imgGr); //show the thresholded image
+		// show grayscale image
+		imshow("drawn Image", imgdraw); //show the thresholded image
 
 
 		// exit -------------------------------------------------------------------------------
@@ -151,6 +166,14 @@ Mat thresholdingv1(Mat& imgHSV, int& iLowH, int& iHighH, int& iLowS, int& iHighS
 	return imgThresholded;
 }
 
+Mat thresholdingv2(Mat& imgGr) {
+	Mat imgthr;
+
+	threshold(imgGr, imgthr, 100, 200, THRESH_BINARY); //Threshold the image
+
+	return imgthr;
+}
+
 void calcMments(Mat& imgThresholded, Mat& imgLines, int& iLastX, int& iLastY) {
 
 	//Calculate the moments of the thresholded image
@@ -183,6 +206,10 @@ void calcMments(Mat& imgThresholded, Mat& imgLines, int& iLastX, int& iLastY) {
 }
 
 void detectCirclesv1(Mat& imgOriginal, Mat& imgGr) {
+	
+	// prepare for object detection - create grayscale image + apply blurring
+	GaussianBlur(imgGr, imgGr, cv::Size(9, 9), 2, 2);
+
 	vector<Vec3f> circles2;
 	HoughCircles(
 		imgGr, circles2, HOUGH_GRADIENT,
@@ -205,6 +232,34 @@ void detectCirclesv1(Mat& imgOriginal, Mat& imgGr) {
 		// circle outline
 		int radius = c[2];
 		circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
+	}
+}
+
+void detectCirclesv2(Mat& imgthres, Mat& imgdraw) {
+	vector<vector<Point>> contours;
+	vector<vector<Point>> applypoly;
+	vector<vector<Point>> hull;
+	vector<Vec4i> hierarchy;
+	vector<Vec3i> poly;
+
+	findContours(imgthres, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+	applypoly.resize(contours.size());
+	hull.resize(contours.size());
+
+	// approximates each contour to polygon
+	for (size_t i = 0; i < contours.size(); i++){
+		//Point cnt = contours[i];
+		// You can try more different parameters
+		approxPolyDP(Mat(contours[i]), applypoly[i], 3, true);
+		convexHull(contours[i], hull[i]);
+	}
+	
+	imgdraw = Mat::zeros(imgthres.size(), CV_8UC3);
+	
+	for (size_t i = 0; i < contours.size(); i++)
+	{
+		Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+		drawContours(imgdraw, applypoly, (int)i, color, 2, LINE_8, hierarchy, 0);
 	}
 }
 
