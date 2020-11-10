@@ -1,4 +1,5 @@
-//https://www.opencv-srf.com/2010/09/object-detection-using-color-seperation.html
+// https://www.opencv-srf.com/2010/09/object-detection-using-color-seperation.html
+// https://www.pyimagesearch.com/2015/02/09/removing-contours-image-using-python-opencv/
 // added comment2
 
 #include <opencv2/opencv.hpp>
@@ -19,7 +20,7 @@ Mat  thresholdingv1(Mat&, int&, int&, int&, int&, int&, int&);
 Mat  thresholdingv2(Mat&);
 void calcMments(Mat&, Mat&, int&, int&);
 void detectCirclesv1(Mat& , Mat& );
-void detectCirclesv2(Mat&,Mat&);
+void detectCirclesv2(Mat&,Mat&,Mat&, Mat&, int&, int&);
 //void detectCirclesv2(Mat&, Mat&); // approxPolyDP
 //void detectCirclesv3(Mat&, Mat&); // min enclosing circle
 
@@ -83,15 +84,18 @@ int main(int argc, char* argv[])
 		Mat imgThres = thresholdingv1(imgHSV, iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
 		//Mat imgThres = thresholdingv2(imgGr);
 
+		// object detection
+		detectCirclesv2(imgOriginal, imgThres, imgdraw, imgLines, iLastX, iLastY);
+
 		// calculate moments and add tracking line
-		calcMments(imgThres, imgLines, iLastX, iLastY);
+		//calcMments(imgdraw, imgLines, iLastX, iLastY);
 
 		// prepare for object detection - create grayscale image + apply blurring
 		// GaussianBlur(imgGr, imgGr, cv::Size(9, 9), 2, 2);
 		
 		// detect circles
-		detectCirclesv1(imgOriginal, imgGr);
-		detectCirclesv2(imgThres, imgdraw);
+		//detectCirclesv1(imgOriginal, imgGr);
+		//detectCirclesv2(imgOriginal, imgThres, imgdraw);
 
 		imgOriginal = imgOriginal + imgLines;
 		// show video with tracking line
@@ -99,7 +103,7 @@ int main(int argc, char* argv[])
 		// show thresholded image
 		imshow("Thresholded Image", imgThres); //show the thresholded image
 		// show grayscale image
-		imshow("grayscale Image", imgGr); //show the thresholded image
+		//imshow("grayscale Image", imgGr); //show the thresholded image
 		// show grayscale image
 		imshow("drawn Image", imgdraw); //show the thresholded image
 
@@ -184,7 +188,7 @@ void calcMments(Mat& imgThresholded, Mat& imgLines, int& iLastX, int& iLastY) {
 	double dArea = oMoments.m00;
 
 	// if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero 
-	if (dArea > 10000)
+	if (dArea > 100000)
 	{
 		//calculate the position of the ball
 		int posX = dM10 / dArea;
@@ -235,32 +239,77 @@ void detectCirclesv1(Mat& imgOriginal, Mat& imgGr) {
 	}
 }
 
-void detectCirclesv2(Mat& imgthres, Mat& imgdraw) {
+void detectCirclesv2(Mat& imgorig, Mat& imgthres, Mat& imgdraw, Mat& imglines, int& iLastX, int& iLastY) {
 	vector<vector<Point>> contours;
 	vector<vector<Point>> applypoly;
-	vector<vector<Point>> hull;
+	//vector<vector<Point>> hull;
+	vector<vector<Point>> circles;
 	vector<Vec4i> hierarchy;
-	vector<Vec3i> poly;
+	//vector<Vec3i> poly;
 
 	findContours(imgthres, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
 	applypoly.resize(contours.size());
-	hull.resize(contours.size());
+	//hull.resize(contours.size());
 
+	vector<Point> approx;
 	// approximates each contour to polygon
-	for (size_t i = 0; i < contours.size(); i++){
-		//Point cnt = contours[i];
-		// You can try more different parameters
-		approxPolyDP(Mat(contours[i]), applypoly[i], 3, true);
-		convexHull(contours[i], hull[i]);
+	for(vector<Point>cont : contours){
+		
+		// create contours
+		approxPolyDP(Mat(cont), approx, arcLength(cont, true) * 0.02, true);
+		//convexHull(contours[i], hull[i]);
+		
+		// keep only circles
+		if (approx.size() > 10
+			//&& isContourConvex(approx)
+			&& fabs(contourArea(approx)) > 1000
+			) {
+			circles.push_back(approx);
+		}
 	}
-	
-	imgdraw = Mat::zeros(imgthres.size(), CV_8UC3);
-	
-	for (size_t i = 0; i < contours.size(); i++)
+
+	// get size of biggest circle
+	double tmpsize = 0;
+	int tmpelement = 0;
+	for (size_t i = 0; i < circles.size(); i++) {
+		if (tmpsize < fabs(contourArea(circles[i]))) {
+			tmpsize = fabs(contourArea(circles[i]));
+		}
+	}
+
+	// keep biggest circle
+	auto it = circles.begin();
+	while (it != circles.end()) {
+		if (fabs(contourArea(*it)) != tmpsize) {
+			it = circles.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
+
+	imgdraw = Mat::zeros(imgthres.size(), CV_8UC1);
+	drawContours(imgdraw, circles, 0, Scalar(255, 255, 255), -2, LINE_8, hierarchy, 0);
+
+	//Calculate the moments of the thresholded image
+	Moments oMoments = moments(imgdraw);
+
+	double dM01 = oMoments.m01;
+	double dM10 = oMoments.m10;
+	double dArea = oMoments.m00;
+
+	//calculate the position of the ball
+	int posX = dM10 / dArea;
+	int posY = dM01 / dArea;
+
+	if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
 	{
-		Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
-		drawContours(imgdraw, applypoly, (int)i, color, 2, LINE_8, hierarchy, 0);
+		//Draw a line from the previous point to the current point
+		line(imglines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0, 255, 0), 1);
 	}
+
+	iLastX = posX;
+	iLastY = posY;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
