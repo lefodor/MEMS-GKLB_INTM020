@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
+#include <string>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -17,12 +18,10 @@ RNG rng(12345);
 void init(VideoCapture& , Mat& );
 void colorhsvtrackbar(string& , int& , int& , int& , int& , int& , int& );
 Mat  thresholdingv1(Mat&, int&, int&, int&, int&, int&, int&);
-Mat  thresholdingv2(Mat&);
-void calcMments(Mat&, Mat&, int&, int&);
-void detectCirclesv1(Mat& , Mat& );
+//Mat  thresholdingv2(Mat&);
+//void calcMments(Mat&, Mat&, int&, int&);
+//void detectCirclesv1(Mat& , Mat& );
 void detectCirclesv2(Mat&,Mat&,Mat&, Mat&, int&, int&);
-//void detectCirclesv2(Mat&, Mat&); // approxPolyDP
-//void detectCirclesv3(Mat&, Mat&); // min enclosing circle
 
 
 int main(int argc, char* argv[])
@@ -140,7 +139,7 @@ void init(VideoCapture& cap, Mat& imgLines) {
 
 }
 
-void colorhsvtrackbar(string& winname, int& iLowH, int& iHighH, int& iLowS, int& iHighS, int& iLowV, int& iHighV) {
+void colorhsvtrackbar(std::string& winname, int& iLowH, int& iHighH, int& iLowS, int& iHighS, int& iLowV, int& iHighV) {
 
 	//Create trackbars in "Control" window
 	createTrackbar("LowH", winname, &iLowH, 179); //Hue (0 - 179)
@@ -153,19 +152,18 @@ void colorhsvtrackbar(string& winname, int& iLowH, int& iHighH, int& iLowS, int&
 	createTrackbar("HighV", winname, &iHighV, 255);
 }
 
-
 Mat thresholdingv1(Mat& imgHSV, int& iLowH, int& iHighH, int& iLowS, int& iHighS, int& iLowV, int& iHighV) {
 	Mat imgThresholded;
 
 	inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
 
 	//morphological opening (removes small objects from the foreground
-	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	//erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	//dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 
 	//morphological closing (removes small holes from the foreground)
-	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	//dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	//erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 
 	return imgThresholded;
 }
@@ -224,15 +222,12 @@ void detectCirclesv1(Mat& imgOriginal, Mat& imgGr) {
 		0, 80			// change the last two parameters (min_radius & max_radius) to detect larger circles
 	);
 
-	//cout << circles.size() << endl;
-
 	for (size_t i = 0; i < circles2.size(); i++)
 	{
 		Vec3i c = circles2[i];
 		Point center = Point(c[0], c[1]);
-		//cout << c[0] << " " << c[1] << endl;
 		// circle center
-		circle(imgOriginal, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
+		// circle(imgOriginal, center, 1, Scalar(0, 100, 100), 3, LINE_AA);
 		// circle outline
 		int radius = c[2];
 		circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
@@ -241,30 +236,31 @@ void detectCirclesv1(Mat& imgOriginal, Mat& imgGr) {
 
 void detectCirclesv2(Mat& imgorig, Mat& imgthres, Mat& imgdraw, Mat& imglines, int& iLastX, int& iLastY) {
 	vector<vector<Point>> contours;
-	vector<vector<Point>> applypoly;
-	//vector<vector<Point>> hull;
+	//vector<vector<Point>> applypoly;
+	vector<vector<Point>> hull;
 	vector<vector<Point>> circles;
 	vector<Vec4i> hierarchy;
 	//vector<Vec3i> poly;
 
 	findContours(imgthres, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
-	applypoly.resize(contours.size());
-	//hull.resize(contours.size());
+	//applypoly.resize(contours.size());
+	hull.resize(contours.size());
 
-	vector<Point> approx;
+	vector<Point> approxhull;
 	// approximates each contour to polygon
 	for(vector<Point>cont : contours){
 		
 		// create contours
-		approxPolyDP(Mat(cont), approx, arcLength(cont, true) * 0.02, true);
-		//convexHull(contours[i], hull[i]);
+		//approxPolyDP(Mat(cont), approx, arcLength(cont, true) * 0.02, true);
+		convexHull(Mat(cont), approxhull);
+		approxPolyDP(approxhull, approxhull, arcLength(approxhull, true) * 0.01, true);
 		
 		// keep only circles
-		if (approx.size() > 10
+		if (approxhull.size() > 10
 			//&& isContourConvex(approx)
-			&& fabs(contourArea(approx)) > 1000
+			&& fabs(contourArea(approxhull)) > 1000
 			) {
-			circles.push_back(approx);
+			circles.push_back(approxhull);
 		}
 	}
 
@@ -289,7 +285,8 @@ void detectCirclesv2(Mat& imgorig, Mat& imgthres, Mat& imgdraw, Mat& imglines, i
 	}
 
 	imgdraw = Mat::zeros(imgthres.size(), CV_8UC1);
-	drawContours(imgdraw, circles, 0, Scalar(255, 255, 255), -2, LINE_8, hierarchy, 0);
+	drawContours(imgdraw, circles, 0, Scalar(255, 255, 255),-2, LINE_8,hierarchy, 0);
+	//circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
 
 	//Calculate the moments of the thresholded image
 	Moments oMoments = moments(imgdraw);
