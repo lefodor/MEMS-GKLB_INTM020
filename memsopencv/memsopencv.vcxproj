@@ -144,7 +144,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="calcmments.cpp" />
+    <ClCompile Include="colorhsvtrackbar.cpp" />
+    <ClCompile Include="detectcircles.cpp" />
+    <ClCompile Include="init.cpp" />
     <ClCompile Include="memsopencv.cpp" />
+    <ClCompile Include="thresholding.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="calcmments.h" />
+    <ClInclude Include="colorhsvtrackbar.h" />
+    <ClInclude Include="detectcircles.h" />
+    <ClInclude Include="init.h" />
+    <ClInclude Include="thresholding.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
