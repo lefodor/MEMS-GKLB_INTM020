@@ -18,3 +18,9 @@ int init(cv::VideoCapture& cap, cv::Mat& imgLines) {
 
 	return 0;
 }
+
+std::string getLine() {
+	std::string result;
+	getline(std::cin, result);
+	return result;
+}

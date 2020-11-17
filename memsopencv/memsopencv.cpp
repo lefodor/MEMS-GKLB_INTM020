@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
@@ -16,8 +17,12 @@
 #include "detectcircles.h"
 #include "calcmments.h"
 
+#include"SerialPort.h"
+
 using namespace cv;
 using namespace std;
+//using namespace System;
+//using namespace System::IO::Ports;
 
 RNG rng(12345);
 
@@ -36,6 +41,9 @@ int main(int argc, char* argv[])
 
 	int iLastX = -1;
 	int iLastY = -1;
+
+	int iLastX_sent = -1;
+	int iLastY_sent = -1;
 
 	Mat imgHSV  ;    // HSV convert
 	Mat imgLines;    // empty image + tracking lines fro colored object
@@ -86,22 +94,46 @@ int main(int argc, char* argv[])
 
 		imgOriginal = imgOriginal + imgLines;
 		// show video with tracking line
-		imshow("Original", imgOriginal); //show the original image
+		//imshow("Original", imgOriginal); //show the original image
 		// show thresholded image
-		imshow("Thresholded Image", imgThres); //show the thresholded image
+		//imshow("Thresholded Image", imgThres); //show the thresholded image
 		// show grayscale image
 		//imshow("grayscale Image", imgGr); //show the thresholded image
 		// show grayscale image
-		imshow("drawn Image", imgdraw); //show the thresholded image
+		//imshow("drawn Image", imgdraw); //show the thresholded image
 
+		//-------- Send the position to Arduino --------
+		//int coord = 30;
+		//serialcomm(coord);
 
 		// exit -------------------------------------------------------------------------------
 		int comm = waitKey(10);
+		if (comm == 115) {
+			int coord = 30;
+			serialcomm(coord);
+		}
 		if (comm == 27) {
 			cout << "Esc key is pressed by user. Stoppig the video" << endl;
 			break;
 		}
 	}
+
+	/*
+	// Close stream if it is not NULL
+	if (serial)
+	{
+		err = fclose(serial);
+		if (err == 0)
+		{
+			printf("The file '__testfile.txt' was closed\n");
+		}
+		else
+		{
+			printf("The file '__testfile.txt' was not closed\n");
+		}
+	}
+	*/
+
 	destroyAllWindows(); //Destroy all opened windows
 
 	return 0;

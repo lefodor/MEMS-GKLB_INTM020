@@ -44,6 +44,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -51,6 +52,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -121,6 +123,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -146,6 +149,7 @@
   <ItemGroup>
     <ClCompile Include="calcmments.cpp" />
     <ClCompile Include="colorhsvtrackbar.cpp" />
+    <ClCompile Include="SerialPort.cpp" />
     <ClCompile Include="detectcircles.cpp" />
     <ClCompile Include="init.cpp" />
     <ClCompile Include="memsopencv.cpp" />
@@ -155,6 +159,7 @@
     <ClInclude Include="calcmments.h" />
     <ClInclude Include="colorhsvtrackbar.h" />
     <ClInclude Include="detectcircles.h" />
+    <ClInclude Include="SerialPort.h" />
     <ClInclude Include="init.h" />
     <ClInclude Include="thresholding.h" />
   </ItemGroup>
