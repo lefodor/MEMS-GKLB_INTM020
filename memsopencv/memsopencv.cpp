@@ -59,8 +59,20 @@ int main(int argc, char* argv[])
 	namedWindow(win_control, WINDOW_NORMAL);
 	namedWindow(win_orig, WINDOW_NORMAL);
 
+	// arduino
+	char port[] = "\\\\.\\COM3";
+	SerialPort arduino(port);
+
 	// init --------------------------------------------------------------------------------
 	init(cap, imgLines);
+
+	if (arduino.isConnected()) {
+		std::cout << "Connection made" << std::endl;
+	}
+	else {
+		std::cout << "Error in port name" << std::endl;
+	}
+
 
 	// setup trackbar ----------------------------------------------------------------------
 	colorhsvtrackbar(win_control,iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
@@ -110,29 +122,13 @@ int main(int argc, char* argv[])
 		int comm = waitKey(10);
 		if (comm == 115) {
 			int coord = 30;
-			serialcomm(coord);
+			serialcomm(coord,arduino);
 		}
 		if (comm == 27) {
 			cout << "Esc key is pressed by user. Stoppig the video" << endl;
 			break;
 		}
 	}
-
-	/*
-	// Close stream if it is not NULL
-	if (serial)
-	{
-		err = fclose(serial);
-		if (err == 0)
-		{
-			printf("The file '__testfile.txt' was closed\n");
-		}
-		else
-		{
-			printf("The file '__testfile.txt' was not closed\n");
-		}
-	}
-	*/
 
 	destroyAllWindows(); //Destroy all opened windows
 

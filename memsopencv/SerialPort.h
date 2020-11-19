@@ -26,6 +26,6 @@ public:
     bool isConnected();
 };
 
-void serialcomm(int&);
+void serialcomm(int&, SerialPort&);
 
 #endif // SERIALPORT_H

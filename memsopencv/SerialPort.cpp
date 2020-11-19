@@ -93,15 +93,16 @@ bool SerialPort::isConnected()
     return this->connected;
 }
 
-void serialcomm(int& coord)
+void serialcomm(int& coord, SerialPort& arduino)
 {
     //char output[MAX_DATA_LENGTH];
     //char incomingData[MAX_DATA_LENGTH];
 
     // change the name of the port with the port name of your computer
     // must remember that the backslashes are essential so do not remove them
-    char port[] = "\\\\.\\COM3";
+    // char port[] = "\\\\.\\COM3";
 
+    /*
     SerialPort arduino(port);
     if (arduino.isConnected()) {
         std::cout << "Connection made" << std::endl;
@@ -109,6 +110,7 @@ void serialcomm(int& coord)
     else {
         std::cout << "Error in port name" << std::endl;
     }
+    */
     if (arduino.isConnected()) {
         //std::cout << "Enter your command: " << std::endl;
         //std::string data = getLine();
