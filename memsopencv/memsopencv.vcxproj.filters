@@ -30,7 +30,7 @@
     <ClCompile Include="detectcircles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="calcmments.cpp">
+    <ClCompile Include="getangle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SerialPort.cpp">
@@ -50,7 +50,7 @@
     <ClInclude Include="detectcircles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="calcmments.h">
+    <ClInclude Include="getangle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SerialPort.h">

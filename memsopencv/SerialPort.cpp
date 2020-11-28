@@ -1,129 +1,155 @@
+// https://playground.arduino.cc/Interfacing/CPPWindows/
 
-// https://github.com/ZainUlMustafa/Connect-And-Use-Arduino-via-Cpp-Software-Made-In-Any-IDE/tree/master/Arduino2PC_SC
 #include "SerialPort.h"
 #include "init.h"
 #include <iostream>
+#include <string>
 
 SerialPort::SerialPort(char* portName)
 {
+    //We're not yet connected
     this->connected = false;
 
-    this->handler = CreateFileA(static_cast<LPCSTR>(portName),
+    //Try to connect to the given port throuh CreateFile
+    this->hSerial = CreateFileA(static_cast<LPCSTR>(portName),
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
         NULL);
-    if (this->handler == INVALID_HANDLE_VALUE) {
+
+    //Check if the connection was successfull
+    if (this->hSerial == INVALID_HANDLE_VALUE)
+    {
+        //If not success full display an Error
         if (GetLastError() == ERROR_FILE_NOT_FOUND) {
-            printf("ERROR: Handle was not attached. Reason: %s not available\n", portName);
+
+            //Print Error if neccessary
+            printf("ERROR: Handle was not attached. Reason: %s not available.\n", portName);
+
         }
         else
         {
             printf("ERROR!!!");
         }
     }
-    else {
-        DCB dcbSerialParameters = { 0 };
+    else
+    {
+        //If connected we try to set the comm parameters
+        DCB dcbSerialParams = { 0 };
 
-        if (!GetCommState(this->handler, &dcbSerialParameters)) {
-            printf("failed to get current serial parameters");
+        //Try to get the current
+        if (!GetCommState(this->hSerial, &dcbSerialParams))
+        {
+            //If impossible, show an error
+            printf("failed to get current serial parameters!");
         }
-        else {
-            dcbSerialParameters.BaudRate = CBR_9600;
-            dcbSerialParameters.ByteSize = 8;
-            dcbSerialParameters.StopBits = ONESTOPBIT;
-            dcbSerialParameters.Parity = NOPARITY;
-            dcbSerialParameters.fDtrControl = DTR_CONTROL_ENABLE;
+        else
+        {
+            //Define serial connection parameters for the arduino board
+            dcbSerialParams.BaudRate = CBR_9600;
+            dcbSerialParams.ByteSize = 8;
+            dcbSerialParams.StopBits = ONESTOPBIT;
+            dcbSerialParams.Parity = NOPARITY;
+            //Setting the DTR to Control_Enable ensures that the Arduino is properly
+            //reset upon establishing a connection
+            dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
 
-            if (!SetCommState(handler, &dcbSerialParameters))
+            //Set the parameters and check for their proper application
+            if (!SetCommState(hSerial, &dcbSerialParams))
             {
-                printf("ALERT: could not set Serial port parameters\n");
+                printf("ALERT: Could not set Serial Port parameters");
             }
-            else {
+            else
+            {
+                //If everything went fine we're connected
                 this->connected = true;
-                PurgeComm(this->handler, PURGE_RXCLEAR | PURGE_TXCLEAR);
+                //Flush any remaining characters in the buffers 
+                PurgeComm(this->hSerial, PURGE_RXCLEAR | PURGE_TXCLEAR);
+                //We wait 2s as the arduino board will be reseting
                 Sleep(ARDUINO_WAIT_TIME);
             }
         }
-    }
+    }   
+
 }
 
 SerialPort::~SerialPort()
 {
-    if (this->connected) {
+    //Check if we are connected before trying to disconnect
+    if (this->connected)
+    {
+        //We're no longer connected
         this->connected = false;
-        CloseHandle(this->handler);
+        //Close the serial handler
+        CloseHandle(this->hSerial);
     }
 }
 
-int SerialPort::readSerialPort(char* buffer, unsigned int buf_size)
+int SerialPort::ReadData(char* buffer, unsigned int nbChar)
 {
+    //Number of bytes we'll have read
     DWORD bytesRead;
-    unsigned int toRead = 0;
+    //Number of bytes we'll really ask to read
+    unsigned int toRead=1;
 
-    ClearCommError(this->handler, &this->errors, &this->status);
+    //Use the ClearCommError function to get status info on the Serial port
+    ClearCommError(this->hSerial, &this->errors, &this->status);
 
-    if (this->status.cbInQue > 0) {
-        if (this->status.cbInQue > buf_size) {
-            toRead = buf_size;
+    //Check if there is something to read
+    if (this->status.cbInQue > 0)
+    {
+        //If there is we check if there is enough data to read the required number
+        //of characters, if not we'll read only the available characters to prevent
+        //locking of the application.
+        
+        if (this->status.cbInQue > nbChar)
+        {
+            toRead = nbChar;
         }
-        else toRead = this->status.cbInQue;
+        else
+        {
+            toRead = this->status.cbInQue;
+        }
+        
+        //Try to read the require number of chars, and return the number of read bytes on success
+        if (ReadFile(this->hSerial, buffer, toRead, &bytesRead, NULL))
+        {
+            return bytesRead;
+        }
+
     }
 
-    if (ReadFile(this->handler, buffer, toRead, &bytesRead, NULL)) return bytesRead;
-
+    //If nothing has been read, or that an error was detected return 0
     return 0;
+
 }
 
-bool SerialPort::writeSerialPort(char* buffer, unsigned int buf_size)
+
+bool SerialPort::WriteData(const char* buffer, unsigned int nbChar)
 {
     DWORD bytesSend;
 
-    if (!WriteFile(this->handler, (void*)buffer, buf_size, &bytesSend, 0)) {
-        ClearCommError(this->handler, &this->errors, &this->status);
+    //Try to write the buffer on the Serial port
+    if (!WriteFile(this->hSerial, (void*)buffer, nbChar, &bytesSend, 0))
+    {
+        //In case it don't work get comm error and return false
+        ClearCommError(this->hSerial, &this->errors, &this->status);
+
         return false;
     }
-    else return true;
+    else
+        return true;
 }
 
 bool SerialPort::isConnected()
 {
+    //Simply return the connection status
     return this->connected;
 }
 
-void serialcomm(int& coord, SerialPort& arduino)
+HANDLE SerialPort::getSerial()
 {
-    //char output[MAX_DATA_LENGTH];
-    //char incomingData[MAX_DATA_LENGTH];
-
-    // change the name of the port with the port name of your computer
-    // must remember that the backslashes are essential so do not remove them
-    // char port[] = "\\\\.\\COM3";
-
-    /*
-    SerialPort arduino(port);
-    if (arduino.isConnected()) {
-        std::cout << "Connection made" << std::endl;
-    }
-    else {
-        std::cout << "Error in port name" << std::endl;
-    }
-    */
-    if (arduino.isConnected()) {
-        //std::cout << "Enter your command: " << std::endl;
-        //std::string data = getLine();
-        std::string data = std::to_string(coord);
-
-        char* charArray = new char[data.size() + 1];
-        //char* charArray = new char[data.size()];
-        copy(data.begin(), data.end(), charArray);
-        charArray[data.size()] = '\n';
-        //charArray[data.size()+1] = '\n';
-
-        arduino.writeSerialPort(charArray, MAX_DATA_LENGTH);
-
-        delete[] charArray;
-    }
+    return this->hSerial;
 }

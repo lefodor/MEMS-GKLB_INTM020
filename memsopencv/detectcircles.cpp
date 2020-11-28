@@ -80,15 +80,15 @@ void detectCirclesv2(cv::Mat& imgorig, cv::Mat& imgthres, cv::Mat& imgdraw, cv::
 	//circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
 
 	//Calculate the moments of the thresholded image
-	cv::Moments oMoments = cv::moments(imgdraw);
+	cv::Moments moments = cv::moments(imgdraw);
 
-	double dM01 = oMoments.m01;
-	double dM10 = oMoments.m10;
-	double dArea = oMoments.m00;
+	double dm01 = moments.m01;
+	double dm10 = moments.m10;
+	double darea = moments.m00;
 
 	//calculate the position of the ball
-	int posX = dM10 / dArea;
-	int posY = dM01 / dArea;
+	int posX = dm10 / darea;
+	int posY = dm01 / darea;
 
 	if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
 	{
@@ -98,4 +98,6 @@ void detectCirclesv2(cv::Mat& imgorig, cv::Mat& imgthres, cv::Mat& imgdraw, cv::
 
 	iLastX = posX;
 	iLastY = posY;
+
+	//std::cout << iLastX << std::endl;
 }

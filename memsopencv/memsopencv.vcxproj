@@ -147,20 +147,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="calcmments.cpp" />
+    <ClCompile Include="getangle.cpp" />
     <ClCompile Include="colorhsvtrackbar.cpp" />
-    <ClCompile Include="SerialPort.cpp" />
     <ClCompile Include="detectcircles.cpp" />
     <ClCompile Include="init.cpp" />
     <ClCompile Include="memsopencv.cpp" />
+    <ClCompile Include="SerialPort.cpp" />
     <ClCompile Include="thresholding.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="calcmments.h" />
+    <ClInclude Include="getangle.h" />
     <ClInclude Include="colorhsvtrackbar.h" />
     <ClInclude Include="detectcircles.h" />
-    <ClInclude Include="SerialPort.h" />
     <ClInclude Include="init.h" />
+    <ClInclude Include="SerialPort.h" />
     <ClInclude Include="thresholding.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
