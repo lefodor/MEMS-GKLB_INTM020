@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
 	int anglex = 0;
 	int ydist = 2;
 
+	string sx_last, sy_last;
 	string sx, sy, rout;
 
 	Mat imgHSV  ;    // HSV convert
@@ -126,6 +127,11 @@ int main(int argc, char* argv[])
 		sx = to_string(getangle(frameh, iLastX, ydist));
 		sy = to_string(getangle(framev, iLastY, ydist));
 
+		if (fcnt == 0) {
+			sx_last = sx;
+			sy_last = sy;
+		}
+
 		// show video with tracking line
 		imshow("Original", imgOriginal); //show the original image
 		// show thresholded image
@@ -142,7 +148,9 @@ int main(int argc, char* argv[])
 		rout = "<" + sx + "." + sy + ">";
 		int dtlen = rout.size();
 		char* rsen = new char[dtlen];
+		char* rrec = new char[dtlen];
 		copy(rout.begin(), rout.end(), rsen);
+		
 
 		/* data setup for function recvWithEndMarker2()
 		rout = sx + "." + sy ;
@@ -151,13 +159,17 @@ int main(int argc, char* argv[])
 		copy(rout.begin(), rout.end(), rsen);
 		rsen[rout.size()] = '\n';
 		*/
+		
 
-		if (fcnt % 10 == 0 && rout != "<1.1>") { /*rout != "1.1"*/
+		if (/*fcnt % 10 == 0 &&*/ rout != "<1.1>") {
 			WriteFile(arduino.getSerial(), rsen, dtlen, NULL, NULL);
-			std::cout << rout << endl;
+			//arduino.ReadData( rrec, dtlen);
+			//std::cout << rsen << endl;
+			for (int i = 0; i < dtlen; i++) { std::cout << rsen[i] << ' '; } std::cout << std::endl;
 		}
 
 		delete[] rsen;
+		delete[] rrec;
 		fcnt++;
 
 		// exit -------------------------------------------------------------------------------
