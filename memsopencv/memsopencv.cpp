@@ -22,6 +22,8 @@
 
 #include"SerialPort.h"
 
+#define MOVING_AVERAGE 20
+
 using namespace cv;
 using namespace std;
 
@@ -48,7 +50,12 @@ int main(int argc, char* argv[])
 	
 	int last_anglex = 0;
 	int anglex = 0;
-	int ydist = 2;
+	int ydist = 10;
+
+	int* movavgx = new int[MOVING_AVERAGE];
+	int* movavgy = new int[MOVING_AVERAGE];
+	int sumx=-1, sumy=-1;
+	int sumx_last = -1, sumy_last = -1;
 
 	string sx_last, sy_last;
 	string sx, sy, rout;
@@ -90,13 +97,10 @@ int main(int argc, char* argv[])
 	// start frame -------------------------------------------------------------------------
 	unsigned int fcnt = 0; // frame counter: used to send data to arduino at every nth frame
 	while (true) {
-		
-		// frame counter
 
 		// get video
 		Mat imgOriginal;
 		bool bSuccess = cap.read(imgOriginal); // read a new frame from video 
-		//cout << "height: " << cap.get(CAP_PROP_FRAME_HEIGHT) << " width: " << cap.get(CAP_PROP_FRAME_WIDTH) << endl;
 
 		//Breaking the while loop at the end of the video
 		if (bSuccess == false)
@@ -122,15 +126,47 @@ int main(int argc, char* argv[])
 
 		int frameh = cap.get(CAP_PROP_FRAME_WIDTH) / 2;
 		int framev = cap.get(CAP_PROP_FRAME_HEIGHT) / 2;
-		drawMarker(imgOriginal,Point(framev, frameh),Scalar(0,0,255),0,10,1,8); // draw marker in middle of image
+		//drawMarker(imgOriginal,Point(framev, frameh),Scalar(0,0,255),0,10,1,8); // draw marker in middle of image
 
-		sx = to_string(getangle(frameh, iLastX, ydist));
-		sy = to_string(getangle(framev, iLastY, ydist));
+		// moving average of angles
+			// data
+		sumx_last = sumx;
+		sumy_last = sumy;
+		sumx = 0;
+		sumy = 0;
+			if (fcnt == 0) {
+				for (int i = 0; i < MOVING_AVERAGE; i++) {
+					*(movavgx + i) = frameh;
+					*(movavgy + i) = framev;
+				}
+				sumx_last = frameh;
+				sumy_last = framev;
+			}
+			else {
+				// shift values
+				if (iLastX > 0 && iLastY > 0) {
+					for (int i = MOVING_AVERAGE - 2; i >= 0; i--) {
+						movavgx[i + 1] = movavgx[i];
+						movavgy[i + 1] = movavgy[i];
+					}
 
-		if (fcnt == 0) {
-			sx_last = sx;
-			sy_last = sy;
-		}
+					movavgx[0] = iLastX;
+					movavgy[0] = iLastY;
+				}
+			}
+
+			// moving average
+			for (int i = 0; i < MOVING_AVERAGE; i++) {
+				sumx += movavgx[i];
+				sumy += movavgy[i];
+			}
+			sumx = sumx / MOVING_AVERAGE;
+			sumy = sumy / MOVING_AVERAGE;
+
+			//std::cout << iLastX << ' ' << sumx << ' ' << sumy << endl;
+		
+		sx = to_string(getangle(frameh, sumx, ydist));
+		sy = to_string(getangle(framev, sumy, ydist));
 
 		// show video with tracking line
 		imshow("Original", imgOriginal); //show the original image
@@ -159,13 +195,15 @@ int main(int argc, char* argv[])
 		copy(rout.begin(), rout.end(), rsen);
 		rsen[rout.size()] = '\n';
 		*/
-		
 
-		if (/*fcnt % 10 == 0 &&*/ rout != "<1.1>") {
+		if (/*fcnt % 20 == 0 &&*/ rout != "<1.1>") {
 			WriteFile(arduino.getSerial(), rsen, dtlen, NULL, NULL);
+			//arduino.WriteData(rsen, dtlen);
 			//arduino.ReadData( rrec, dtlen);
 			//std::cout << rsen << endl;
-			for (int i = 0; i < dtlen; i++) { std::cout << rsen[i] << ' '; } std::cout << std::endl;
+			std::cout << rout << endl;
+			//std::cout << sumx << " " << sumy << std::endl;
+			//for (int i = 0; i < dtlen; i++) { std::cout << rsen[i] << ' '; }
 		}
 
 		delete[] rsen;
@@ -178,6 +216,9 @@ int main(int argc, char* argv[])
 			break;
 		}
 	}
+
+	delete[] movavgx;
+	delete[] movavgy;
 
 	destroyAllWindows(); //Destroy all opened windows
 

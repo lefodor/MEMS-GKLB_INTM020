@@ -18,7 +18,7 @@ boolean newData = false;
 
 unsigned long startMillis ;
 unsigned long currentMillis ;
-const unsigned long period = 50; 
+const unsigned long period = 250; 
 
 void setup() 
 {
@@ -55,7 +55,7 @@ void loop()
       startMillis = currentMillis;
     }
     
-    delay(50) ;
+    //delay(50) ;
 }
 
 void recvWithStartEndMarkers() {
@@ -106,14 +106,14 @@ void recvWithStartEndMarkers() {
     }
 
     // load only reasonlable data
-    if ( xcoord.toInt() > 0 && xcoord.toInt() < 181 && abs(xcoord.toInt() - vx) < 60 ){
+    if ( xcoord.toInt() > 0 && xcoord.toInt() < 181 ){
       vx=xcoord.toInt() ;
     }
-    if ( ycoord.toInt() > 0 && ycoord.toInt() < 181 && abs(ycoord.toInt() - vy) < 60 ){
+    if ( ycoord.toInt() > 0 && ycoord.toInt() < 181 ){
       vy=ycoord.toInt() ;
     }
     askForData = true;
-    newData = false;   
+    newData = false;
 }
 
 void recvWithEndMarker2() {
