@@ -6,7 +6,15 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-int getangle(int& lastpt, int& pt, int& ydist) {
+int getangle(int& lastpt, int& pt, int ydist, bool horiz=false) {
 	double x = ((double)pt - (double)lastpt) * 0.026458333; // 1 pixel = .026458333 cm
-	return ( 180 - (int)(atan2(ydist,x) * 180/ M_PI ));
+	if (horiz == true) {
+		ydist -= 6; // length of pointer
+		return ( /*180 -*/ (int)(atan2(ydist, x) * 180 / M_PI));
+	}
+	else {
+		x -= 3; // level difference camera vs pointer
+		ydist -= 6; // length of pointer
+		return ( /*180 -*/ (int)(atan2(ydist, x) * 180 / M_PI));
+	}
 }

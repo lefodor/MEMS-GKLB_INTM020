@@ -1,2 +1,2 @@
 #pragma once
-int getangle(int&, int&,int&);
+int getangle(int&, int&,int,bool);

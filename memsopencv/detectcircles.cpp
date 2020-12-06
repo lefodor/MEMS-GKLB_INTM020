@@ -27,14 +27,11 @@ void detectCirclesv1(cv::Mat& imgOriginal, cv::Mat& imgGr) {
 
 void detectCirclesv2(cv::Mat& imgorig, cv::Mat& imgthres, cv::Mat& imgdraw, cv::Mat& imglines, int& iLastX, int& iLastY) {
 	std::vector<std::vector<cv::Point>> contours;
-	//vector<vector<Point>> applypoly;
 	std::vector<std::vector<cv::Point>> hull;
 	std::vector<std::vector<cv::Point>> circles;
 	std::vector<cv::Vec4i> hierarchy;
-	//vector<Vec3i> poly;
 
 	cv::findContours(imgthres, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
-	//applypoly.resize(contours.size());
 	hull.resize(contours.size());
 
 	std::vector<cv::Point> approxhull;
@@ -42,13 +39,11 @@ void detectCirclesv2(cv::Mat& imgorig, cv::Mat& imgthres, cv::Mat& imgdraw, cv::
 	for (std::vector<cv::Point>cont : contours) {
 
 		// create contours
-		//approxPolyDP(Mat(cont), approx, arcLength(cont, true) * 0.02, true);
 		cv::convexHull(cv::Mat(cont), approxhull);
 		cv::approxPolyDP(approxhull, approxhull, cv::arcLength(approxhull, true) * 0.01, true);
 
 		// keep only circles
 		if (approxhull.size() > 10
-			//&& isContourConvex(approx)
 			&& fabs(cv::contourArea(approxhull)) > 1000
 			) {
 			circles.push_back(approxhull);
@@ -77,7 +72,6 @@ void detectCirclesv2(cv::Mat& imgorig, cv::Mat& imgthres, cv::Mat& imgdraw, cv::
 
 	imgdraw = cv::Mat::zeros(imgthres.size(), CV_8UC1);
 	cv::drawContours(imgdraw, circles, 0, cv::Scalar(255, 255, 255), -2, cv::LINE_8, hierarchy, 0);
-	//circle(imgOriginal, center, radius, Scalar(255, 0, 255), 3, LINE_AA);
 
 	//Calculate the moments of the thresholded image
 	cv::Moments moments = cv::moments(imgdraw);
@@ -99,5 +93,4 @@ void detectCirclesv2(cv::Mat& imgorig, cv::Mat& imgthres, cv::Mat& imgdraw, cv::
 	iLastX = posX;
 	iLastY = posY;
 
-	//std::cout << iLastX << std::endl;
 }

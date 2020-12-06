@@ -22,64 +22,59 @@
 
 #include"SerialPort.h"
 
-#define MOVING_AVERAGE 20
+#define MOVING_AVERAGE 5
 
-using namespace cv;
+//using namespace cv;
 using namespace std;
-
-RNG rng(12345);
 
 
 int main(int argc, char* argv[])
 {
 	// set up global vars ------------------------------------------------------------------
+	// starting values for trackbar
 	int iLowH = 22;
 	int iHighH = 38;
 
-	int iLowS = 150;
-	int iHighS = 255;
+	int iLowS = 80;
+	int iHighS = 150;
 
 	int iLowV = 60;
 	int iHighV = 255;
 
 	int iLastX = -1;
 	int iLastY = -1;
-
-	int iLastX_sent = -1;
-	int iLastY_sent = -1;
 	
-	int last_anglex = 0;
-	int anglex = 0;
-	int ydist = 10;
+	// camera distance to object
+	const int ydist = 20;
 
+	// values for moving average - used for smoothing results
 	int* movavgx = new int[MOVING_AVERAGE];
 	int* movavgy = new int[MOVING_AVERAGE];
 	int sumx=-1, sumy=-1;
 	int sumx_last = -1, sumy_last = -1;
 
+	// coordinates
 	string sx_last, sy_last;
 	string sx, sy, rout;
 
-	Mat imgHSV  ;    // HSV convert
-	Mat imgLines;    // empty image + tracking lines fro colored object
-	Mat imgGr   ;    // grayscale image
-	Mat imgdraw ;
-	VideoCapture cap(0);
-
-	//Define names of the window
-	String win_control = "Control";
-	String win_orig = "Original";
-
-	// Create a window with above names
-	namedWindow(win_control, WINDOW_AUTOSIZE);
-	namedWindow(win_orig, WINDOW_AUTOSIZE);
-
-	// arduino
-	//char port[] = "\\\\.\\COM3";
-	//SerialPort arduino(port);
-
+	// arduino communication
 	char port[] = "\\\\.\\COM3";
 	SerialPort arduino(port);
+
+	// image processing variables
+	cv::Mat imgHSV  ;      // HSV convert
+	cv::Mat imgLines;      // empty image + tracking lines fro colored object
+	//cv::Mat imgGr   ;    // grayscale image
+	cv::Mat imgdraw ;
+	cv::VideoCapture cap(0);
+
+	//Define names of the window
+	cv::String win_control = "Control";
+	cv::String win_orig = "Original";
+
+	// Create a window with above names
+	cv::namedWindow(win_control, cv::WINDOW_AUTOSIZE);
+	cv::namedWindow(win_orig, cv::WINDOW_AUTOSIZE);
 
 	// init --------------------------------------------------------------------------------
 	init(cap, imgLines);
@@ -91,7 +86,7 @@ int main(int argc, char* argv[])
 		std::cout << "Error in port name" << std::endl;
 	}
 
-	// setup trackbar ----------------------------------------------------------------------
+	// setup trackbar - used for manual calibration ----------------------------------------
 	colorhsvtrackbar(win_control,iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
 
 	// start frame -------------------------------------------------------------------------
@@ -99,34 +94,32 @@ int main(int argc, char* argv[])
 	while (true) {
 
 		// get video
-		Mat imgOriginal;
+		cv::Mat imgOriginal;
 		bool bSuccess = cap.read(imgOriginal); // read a new frame from video 
 
 		//Breaking the while loop at the end of the video
 		if (bSuccess == false)
 		{
-			//cout << "Found the end of the video" << endl;
 			cout << "Video camera is disconnected" << endl;
 			break;
 		}
 
 		// create HSV image
-		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+		cvtColor(imgOriginal, imgHSV, cv::COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 		// create Grayscale image
-		//cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to grayscale
+		// cvtColor(imgOriginal, imgGr, COLOR_BGR2GRAY); //Convert the captured frame from BGR to grayscale
 
 		// create image with thresholding method v1
-		Mat imgThres = thresholdingv1(imgHSV, iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
-		//Mat imgThres = thresholdingv2(imgGr);
+		cv::Mat imgThres = thresholdingv1(imgHSV, iLowH, iHighH, iLowS, iHighS, iLowV, iHighV);
 
 		// object detection
 		detectCirclesv2(imgOriginal, imgThres, imgdraw, imgLines, iLastX, iLastY);
 
 		imgOriginal = imgOriginal + imgLines;
 
-		int frameh = cap.get(CAP_PROP_FRAME_WIDTH) / 2;
-		int framev = cap.get(CAP_PROP_FRAME_HEIGHT) / 2;
-		//drawMarker(imgOriginal,Point(framev, frameh),Scalar(0,0,255),0,10,1,8); // draw marker in middle of image
+		int frameh = cap.get(cv::CAP_PROP_FRAME_WIDTH) / 2;
+		int framev = cap.get(cv::CAP_PROP_FRAME_HEIGHT) / 2;
+		//drawMarker(imgOriginal,cv::Point(framev, frameh), cv::Scalar(0,0,255),0,10,1,8); // draw marker in middle of image
 
 		// moving average of angles
 			// data
@@ -162,11 +155,9 @@ int main(int argc, char* argv[])
 			}
 			sumx = sumx / MOVING_AVERAGE;
 			sumy = sumy / MOVING_AVERAGE;
-
-			//std::cout << iLastX << ' ' << sumx << ' ' << sumy << endl;
 		
-		sx = to_string(getangle(frameh, sumx, ydist));
-		sy = to_string(getangle(framev, sumy, ydist));
+		sx = to_string(getangle(frameh, sumx, ydist,true));
+		sy = to_string(getangle(framev, sumy, ydist,false));
 
 		// show video with tracking line
 		imshow("Original", imgOriginal); //show the original image
@@ -175,13 +166,13 @@ int main(int argc, char* argv[])
 		// show grayscale image
 		imshow("drawn Image", imgdraw); //show the thresholded image
 
-		//-------- Send the position to Arduino --------
+		//-------- Send the position to Arduino -----------------------------------------------
 
 		// exit -------------------------------------------------------------------------------
-		int comm = waitKey(10);
+		int comm = cv::waitKey(10);
 
 		/* data setup for function recvWithStartEndMarkers()*/
-		rout = "<" + sx + "." + sy + ">";
+		rout = "<" + sy + "." + sx + ">";
 		int dtlen = rout.size();
 		char* rsen = new char[dtlen];
 		char* rrec = new char[dtlen];
@@ -196,14 +187,9 @@ int main(int argc, char* argv[])
 		rsen[rout.size()] = '\n';
 		*/
 
-		if (/*fcnt % 20 == 0 &&*/ rout != "<1.1>") {
+		if ( rout != "<1.1>" ) {
 			WriteFile(arduino.getSerial(), rsen, dtlen, NULL, NULL);
-			//arduino.WriteData(rsen, dtlen);
-			//arduino.ReadData( rrec, dtlen);
-			//std::cout << rsen << endl;
-			std::cout << rout << endl;
-			//std::cout << sumx << " " << sumy << std::endl;
-			//for (int i = 0; i < dtlen; i++) { std::cout << rsen[i] << ' '; }
+			// std::cout << rout << endl;
 		}
 
 		delete[] rsen;
@@ -220,7 +206,7 @@ int main(int argc, char* argv[])
 	delete[] movavgx;
 	delete[] movavgy;
 
-	destroyAllWindows(); //Destroy all opened windows
+	cv::destroyAllWindows(); //Destroy all opened windows
 
 	return 0;
 
