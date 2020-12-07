@@ -21,9 +21,6 @@
     <ClCompile Include="colorhsvtrackbar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="init.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="thresholding.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,9 +36,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colorhsvtrackbar.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="init.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="thresholding.h">

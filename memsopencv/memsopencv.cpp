@@ -14,7 +14,6 @@
 #include "opencv2/imgproc.hpp"
 
 #include <Windows.h>
-#include "init.h"
 #include "colorhsvtrackbar.h"
 #include "thresholding.h"
 #include "detectcircles.h"
@@ -77,7 +76,21 @@ int main(int argc, char* argv[])
 	cv::namedWindow(win_orig, cv::WINDOW_AUTOSIZE);
 
 	// init --------------------------------------------------------------------------------
-	init(cap, imgLines);
+
+	if (cap.isOpened() == false)
+	{
+		//cout << "Cannot open the video file" << endl;
+		std::cout << "Cannot open the video cam " << std::endl;
+		std::cin.get(); //wait for any key press
+		return -1;
+	}
+
+	//Capture a temporary image from the camera
+	cv::Mat imgTmp;
+	cap.read(imgTmp);
+
+	//Create a black image with the size as the camera output
+	imgLines = cv::Mat::zeros(imgTmp.size(), CV_8UC3);
 
 	if (arduino.isConnected()) {
 		std::cout << "Connection made" << std::endl;
