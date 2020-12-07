@@ -1,7 +1,6 @@
 // https://playground.arduino.cc/Interfacing/CPPWindows/
 
 #include "SerialPort.h"
-#include "init.h"
 #include <iostream>
 #include <string>
 

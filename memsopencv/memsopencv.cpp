@@ -53,7 +53,6 @@ int main(int argc, char* argv[])
 	int sumx_last = -1, sumy_last = -1;
 
 	// coordinates
-	string sx_last, sy_last;
 	string sx, sy, rout;
 
 	// arduino communication
@@ -62,7 +61,7 @@ int main(int argc, char* argv[])
 
 	// image processing variables
 	cv::Mat imgHSV  ;      // HSV convert
-	cv::Mat imgLines;      // empty image + tracking lines fro colored object
+	cv::Mat imgLines;      // empty image + tracking lines from colored object
 	//cv::Mat imgGr   ;    // grayscale image
 	cv::Mat imgdraw ;
 	cv::VideoCapture cap(0);
