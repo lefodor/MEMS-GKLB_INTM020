@@ -8,18 +8,18 @@
 #include <stdio.h>
 #include <time.h>
 #include <bitset>
+#include <Windows.h>
+
 #include <opencv2/opencv.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 
-#include <Windows.h>
 #include "colorhsvtrackbar.h"
 #include "thresholding.h"
 #include "detectcircles.h"
 #include "getangle.h"
-
-#include"SerialPort.h"
+#include "SerialPort.h"
 
 #define MOVING_AVERAGE 5
 
