@@ -11,4 +11,4 @@ Build visual tracking device capable of processing image from web camera and poi
   - 2 servomotors
   - web-camera
   - laserpointer
-  - opencv c++ librarires for image processing
+  - opencv c++ libraries for image processing
